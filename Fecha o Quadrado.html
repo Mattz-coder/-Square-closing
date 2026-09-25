@@ -1,0 +1,499 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Fecha o Quadrado</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cabin+Sketch:wght@400;700&family=Nunito:wght@600;800&display=swap">
+<style>
+  /* Tema único e escuro de propósito: quadro-negro de sala de aula com giz */
+  :root {
+    color-scheme: dark;
+    --madeira: #7a5231;
+    --madeira-escura: #57391f;
+    --lousa: #2e4a3e;
+    --lousa2: #29433a;
+    --giz: #f3f1e7;
+    --giz-suave: #b9c4bb;
+    --amarelo: #ffe066;
+    --rosa: #ff8fb1;
+    --fundo: #1f2a25;
+  }
+  html, body { min-height: 100%; }
+  body {
+    margin: 0;
+    background: var(--fundo);
+    color: var(--giz);
+    font: 600 16px/1.45 "Nunito", system-ui, sans-serif;
+    padding-inline: 16px;
+    display: flex; justify-content: center;
+  }
+  .app { width: 100%; max-width: 580px; padding-block: 16px 28px; display: flex; flex-direction: column; gap: 12px; }
+  button, input { font: inherit; color: inherit; }
+
+  header { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  h1 { margin: 0; font: 700 36px/1 "Cabin Sketch", "Comic Sans MS", cursive; letter-spacing: .01em; }
+  h1 .q { color: var(--amarelo); }
+  .opcoes { display: flex; gap: 6px; flex-wrap: wrap; }
+  .grupo { display: flex; border: 2px solid var(--giz-suave); border-radius: 999px; padding: 2px; }
+  .grupo button { border: 0; background: none; border-radius: 999px; padding: 3px 11px; font-size: 13px; font-weight: 800; cursor: pointer; color: var(--giz-suave); }
+  .grupo button[aria-pressed="true"] { background: var(--giz); color: var(--lousa); }
+
+  /* ---------- Jogadores ---------- */
+  .jogadores { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .jogador {
+    border: 2px dashed rgba(243,241,231,.35);
+    border-radius: 14px;
+    padding: 8px 12px;
+    display: flex; align-items: center; gap: 10px;
+    background: var(--lousa2);
+    min-width: 0;
+    transition: border-color .2s, transform .2s, box-shadow .2s;
+  }
+  .jogador.vez { border-style: solid; transform: translateY(-2px); }
+  .jogador.p0.vez { border-color: var(--amarelo); box-shadow: 0 0 16px rgba(255,224,102,.25); }
+  .jogador.p1.vez { border-color: var(--rosa); box-shadow: 0 0 16px rgba(255,143,177,.25); }
+  .jogador .info { flex: 1; min-width: 0; }
+  .jogador input {
+    width: 100%; min-width: 0; padding: 0;
+    border: 0; border-bottom: 2px dashed transparent; background: none;
+    font: 700 22px/1.1 "Cabin Sketch", "Comic Sans MS", cursive;
+  }
+  .p0 input { color: var(--amarelo); } .p1 input { color: var(--rosa); }
+  .jogador input:focus { outline: none; border-bottom-color: var(--giz-suave); }
+  .jogador input:disabled { opacity: 1; }
+  .jogador small { display: block; font-size: 12px; color: var(--giz-suave); }
+  .placar-q { font: 700 38px/1 "Cabin Sketch", "Comic Sans MS", cursive; font-variant-numeric: tabular-nums; }
+  .p0 .placar-q { color: var(--amarelo); } .p1 .placar-q { color: var(--rosa); }
+
+  /* ---------- Quadro ---------- */
+  .quadro {
+    background: var(--madeira);
+    border-radius: 14px;
+    padding: 10px;
+    box-shadow: inset 0 0 0 3px var(--madeira-escura), 0 6px 0 var(--madeira-escura);
+  }
+  .lousa {
+    background:
+      radial-gradient(ellipse at 30% 20%, rgba(255,255,255,.06), transparent 60%),
+      radial-gradient(ellipse at 80% 90%, rgba(255,255,255,.04), transparent 50%),
+      var(--lousa);
+    border-radius: 6px;
+  }
+  svg#tab { display: block; width: 100%; max-width: 100%; touch-action: manipulation; user-select: none; -webkit-user-select: none; cursor: pointer; }
+  .ponto { fill: var(--giz); }
+  .traco { stroke-width: 9; stroke-linecap: round; fill: none; }
+  .traco.p0 { stroke: var(--amarelo); } .traco.p1 { stroke: var(--rosa); }
+  .traco.ultimo { stroke-width: 12; filter: url(#brilho); }
+  .traco.novo { animation: risca .28s ease-out; }
+  @keyframes risca { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
+  .fantasma { stroke: var(--giz); opacity: .3; stroke-width: 9; stroke-linecap: round; stroke-dasharray: 4 12; }
+  .caixa-dono.p0 { fill: url(#hachuraAmarela); } .caixa-dono.p1 { fill: url(#hachuraRosa); }
+  .letra { font: 700 44px "Cabin Sketch", "Comic Sans MS", cursive; text-anchor: middle; dominant-baseline: central; }
+  .letra.p0 { fill: var(--amarelo); } .letra.p1 { fill: var(--rosa); }
+  .caixa-dono { animation: pinta .35s ease-out; transform-box: fill-box; transform-origin: center; }
+  @keyframes pinta { from { transform: scale(.3); opacity: 0; } }
+
+  .status { margin: 0; text-align: center; min-height: 2.9em; font-weight: 800; text-wrap: balance; display: grid; place-items: center; }
+  .status .n0 { color: var(--amarelo); } .status .n1 { color: var(--rosa); }
+
+  .acoes { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn {
+    flex: 1 1 120px; min-height: 46px;
+    border-radius: 12px;
+    border: 2px solid var(--giz);
+    background: transparent;
+    font-weight: 800; font-size: 16px;
+    cursor: pointer;
+  }
+  .btn:hover:not(:disabled) { background: rgba(243,241,231,.08); }
+  .btn:disabled { opacity: .35; cursor: default; }
+  .btn.forte { background: var(--giz); color: var(--lousa); }
+  button:focus-visible, input:focus-visible { outline: 3px solid var(--amarelo); outline-offset: 3px; }
+
+  .regras { border: 2px dashed rgba(243,241,231,.25); border-radius: 12px; padding: 10px 14px; color: var(--giz-suave); font-size: 15px; font-weight: 600; }
+  .regras h2 { margin: 0 0 4px; font: 700 24px/1.1 "Cabin Sketch", "Comic Sans MS", cursive; color: var(--giz); }
+  .regras ul { margin: 0; padding-left: 20px; display: grid; gap: 3px; }
+  .regras b { color: var(--giz); }
+
+  .fim { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; background: rgba(15,22,19,.6); padding: 16px; }
+  .cartao {
+    background: var(--lousa); border: 3px solid var(--madeira); border-radius: 16px;
+    padding: 18px 20px; text-align: center; max-width: 330px; width: 100%;
+    box-shadow: 0 6px 0 var(--madeira-escura);
+    animation: surge .35s cubic-bezier(.3,1.6,.5,1);
+  }
+  @keyframes surge { from { transform: scale(.6); opacity: 0; } }
+  .cartao h2 { margin: 0; font: 700 38px/1.05 "Cabin Sketch", "Comic Sans MS", cursive; }
+  .cartao p { margin: 6px 0 14px; color: var(--giz-suave); }
+  .cartao .lista { display: grid; gap: 8px; }
+
+  @media (max-width: 420px) {
+    h1 { font-size: 30px; }
+    .jogador { padding: 6px 10px; }
+    .jogador input { font-size: 19px; }
+    .placar-q { font-size: 32px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .traco.novo, .caixa-dono, .cartao { animation: none; }
+  }
+</style>
+
+<div class="app">
+  <header>
+    <h1>Fecha o <span class="q">Quadrado</span></h1>
+    <div class="opcoes">
+      <div class="grupo" role="group" aria-label="Modo">
+        <button id="modo2" aria-pressed="true">2 jogadores</button>
+        <button id="modoCpu" aria-pressed="false">Computador</button>
+      </div>
+      <div class="grupo" role="group" aria-label="Tamanho">
+        <button data-tam="3" aria-pressed="false">3×3</button>
+        <button data-tam="5" aria-pressed="true">5×5</button>
+        <button data-tam="7" aria-pressed="false">7×7</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="jogadores">
+    <div class="jogador p0" id="card0">
+      <div class="info"><input id="nome0" value="Amarelo" maxlength="12" aria-label="Nome do jogador amarelo"><small id="extra0"></small></div>
+      <span class="placar-q" id="q0">0</span>
+    </div>
+    <div class="jogador p1" id="card1">
+      <div class="info"><input id="nome1" value="Rosa" maxlength="12" aria-label="Nome do jogador rosa"><small id="extra1"></small></div>
+      <span class="placar-q" id="q1">0</span>
+    </div>
+  </div>
+
+  <div class="quadro"><div class="lousa">
+    <svg id="tab" aria-label="Quadro com pontinhos">
+      <defs>
+        <filter id="brilho" filterUnits="userSpaceOnUse" x="-100" y="-100" width="1000" height="1000"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <pattern id="hachuraAmarela" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><rect width="14" height="14" fill="rgba(255,224,102,.08)"/><line x1="0" y1="0" x2="0" y2="14" stroke="#ffe066" stroke-width="4" opacity=".45"/></pattern>
+        <pattern id="hachuraRosa" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(-35)"><rect width="14" height="14" fill="rgba(255,143,177,.08)"/><line x1="0" y1="0" x2="0" y2="14" stroke="#ff8fb1" stroke-width="4" opacity=".45"/></pattern>
+      </defs>
+      <g id="camadaCaixas"></g>
+      <g id="camadaTracos"></g>
+      <g id="camadaFantasma"></g>
+      <g id="camadaPontos"></g>
+    </svg>
+  </div></div>
+
+  <p class="status" id="status" aria-live="polite"></p>
+
+  <div class="acoes">
+    <button class="btn" id="btnDesfazer">Desfazer</button>
+    <button class="btn forte" id="btnNovo">Nova partida</button>
+  </div>
+
+  <div class="regras">
+    <h2>Como jogar</h2>
+    <ul>
+      <li>Na sua vez, <b>ligue dois pontinhos vizinhos</b> tocando no espaço entre eles.</li>
+      <li>Quem fecha o <b>quarto lado</b> de um quadrado fica com ele <b>e joga de novo</b>.</li>
+      <li>Quando todas as linhas estiverem riscadas, ganha quem tiver <b>mais quadrados</b>.</li>
+      <li>Dica: evite riscar o <b>terceiro lado</b> de um quadrado, porque aí o outro fecha.</li>
+      <li><b>Desfazer:</b> cada jogador pode desfazer a própria linha só <b>2 vezes por partida</b>, e nunca duas vezes seguidas.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   FECHA O QUADRADO — o jogo dos pontinhos para 2 jogadores
+   HTML + CSS + JavaScript puro, desenhado em SVG.
+   ========================================================= */
+
+const U = 100;             // distância entre dois pontinhos (unidades do SVG)
+const DESFAZER_MAX = 2;
+const NS = "http://www.w3.org/2000/svg";
+const $ = id => document.getElementById(id);
+
+/* ---------- Como as linhas são guardadas ----------
+   Com L linhas e C colunas de quadrados:
+   - linha horizontal "h,r,c": do ponto (r,c) ao (r,c+1)   r = 0..L,   c = 0..C-1
+   - linha vertical   "v,r,c": do ponto (r,c) ao (r+1,c)   r = 0..L-1, c = 0..C
+   Cada quadrado (r,c) tem 4 lados: h,r,c  h,r+1,c  v,r,c  v,r,c+1 */
+let tamanho = 5, modoCpu = false, vitorias = [0, 0], quemComeca = 0, jogo;
+try {
+  const s = JSON.parse(localStorage.getItem("fechaQuadrado"));
+  if (s) { vitorias = s.vitorias || vitorias; $("nome0").value = s.nomes?.[0] || "Amarelo"; $("nome1").value = s.nomes?.[1] || "Rosa"; }
+} catch {}
+function salvar() { try { localStorage.setItem("fechaQuadrado", JSON.stringify({ vitorias, nomes: [$("nome0").value, $("nome1").value] })); } catch {} }
+
+const ladosDe = (r, c) => [`h,${r},${c}`, `h,${r + 1},${c}`, `v,${r},${c}`, `v,${r},${c + 1}`];
+function caixasDaLinha(id) {
+  const [t, r, c] = id.split(","), R = +r, C = +c, L = tamanho, lista = [];
+  if (t === "h") { if (R > 0) lista.push([R - 1, C]); if (R < L) lista.push([R, C]); }
+  else { if (C > 0) lista.push([R, C - 1]); if (C < L) lista.push([R, C]); }
+  return lista;
+}
+function todasAsLinhas() {
+  const L = tamanho, lista = [];
+  for (let r = 0; r <= L; r++) for (let c = 0; c < L; c++) lista.push(`h,${r},${c}`);
+  for (let r = 0; r < L; r++) for (let c = 0; c <= L; c++) lista.push(`v,${r},${c}`);
+  return lista;
+}
+const ladosFeitos = (linhas, r, c) => ladosDe(r, c).filter(id => linhas.has(id)).length;
+
+/* ---------- Partida ---------- */
+function novaPartida() {
+  document.querySelector(".fim")?.remove();
+  jogo = {
+    linhas: new Map(),   // id -> dono
+    caixas: new Map(),   // "r,c" -> dono
+    pontos: [0, 0],
+    vez: quemComeca,
+    historico: [],
+    desfazeres: [DESFAZER_MAX, DESFAZER_MAX],
+    acabouDeDesfazer: false,
+    ultima: null, novas: [],
+    fim: false,
+    previa: null,
+    msg: "",
+  };
+  montarQuadro();
+  desenhar();
+  agendarCpu();
+}
+
+function riscar(id) {
+  if (jogo.fim || jogo.linhas.has(id)) return;
+  jogo.historico.push({
+    linhas: new Map(jogo.linhas), caixas: new Map(jogo.caixas), pontos: jogo.pontos.slice(),
+    vez: jogo.vez, ultima: jogo.ultima, autor: jogo.vez,
+  });
+  jogo.acabouDeDesfazer = false;
+  jogo.linhas.set(id, jogo.vez);
+  jogo.ultima = id;
+  jogo.previa = null;
+
+  // Fechou algum quadrado?
+  const fechadas = caixasDaLinha(id).filter(([r, c]) => ladosFeitos(jogo.linhas, r, c) === 4);
+  jogo.novas = fechadas.map(([r, c]) => `${r},${c}`);
+  for (const k of jogo.novas) jogo.caixas.set(k, jogo.vez);
+  jogo.pontos[jogo.vez] += fechadas.length;
+
+  if (jogo.caixas.size === tamanho * tamanho) return terminar();
+  if (fechadas.length) jogo.msg = fechadas.length === 2 ? "dois" : "um";
+  else { jogo.vez = 1 - jogo.vez; jogo.msg = ""; }
+  desenhar();
+  agendarCpu();
+}
+
+/* ---------- Desfazer com limite ---------- */
+function quemDesfaz() {
+  if (jogo.fim || jogo.acabouDeDesfazer || !jogo.historico.length) return -1;
+  if (modoCpu) {
+    if (jogo.vez !== 0) return -1;
+    return jogo.historico.some(h => h.autor === 0) ? 0 : -1;
+  }
+  return jogo.historico[jogo.historico.length - 1].autor;
+}
+function desfazer() {
+  const autor = quemDesfaz();
+  if (autor < 0 || jogo.desfazeres[autor] <= 0) return;
+  let estado;
+  if (modoCpu) { // volta até antes da última linha do jogador humano
+    do { estado = jogo.historico.pop(); } while (estado.autor !== 0 && jogo.historico.length);
+  } else estado = jogo.historico.pop();
+  Object.assign(jogo, { linhas: estado.linhas, caixas: estado.caixas, pontos: estado.pontos, vez: estado.vez, ultima: estado.ultima, novas: [], previa: null, msg: "" });
+  jogo.desfazeres[autor]--;
+  jogo.acabouDeDesfazer = true;
+  desenhar();
+}
+
+/* ---------- Computador ----------
+   1. Se dá para fechar um quadrado, fecha.
+   2. Senão, risca uma linha "segura" (que não deixa nenhum quadrado com 3 lados).
+   3. Se não sobrou linha segura, entrega o menor pedaço possível. */
+function agendarCpu() {
+  if (modoCpu && !jogo.fim && jogo.vez === 1) setTimeout(jogadaCpu, 520);
+}
+function simularEntrega(linhas) {
+  // Quantos quadrados o adversário fecharia em sequência depois dessa linha
+  const copia = new Map(linhas);
+  let total = 0, achou = true;
+  while (achou) {
+    achou = false;
+    for (let r = 0; r < tamanho && !achou; r++) for (let c = 0; c < tamanho && !achou; c++) {
+      if (ladosFeitos(copia, r, c) === 3) {
+        const falta = ladosDe(r, c).find(id => !copia.has(id));
+        copia.set(falta, 0); total++;
+        total += caixasDaLinha(falta).filter(([a, b]) => (a !== r || b !== c) && ladosFeitos(copia, a, b) === 4).length;
+        achou = true;
+      }
+    }
+  }
+  return total;
+}
+function jogadaCpu() {
+  if (jogo.fim || jogo.vez !== 1) return;
+  const livres = todasAsLinhas().filter(id => !jogo.linhas.has(id));
+  const fecha = livres.find(id => caixasDaLinha(id).some(([r, c]) => ladosFeitos(jogo.linhas, r, c) === 3));
+  if (fecha) return riscar(fecha);
+  const seguras = livres.filter(id => caixasDaLinha(id).every(([r, c]) => ladosFeitos(jogo.linhas, r, c) < 2));
+  if (seguras.length) return riscar(seguras[Math.floor(Math.random() * seguras.length)]);
+  let melhor = null;
+  for (const id of livres) {
+    const teste = new Map(jogo.linhas); teste.set(id, 1);
+    const entrega = simularEntrega(teste);
+    if (!melhor || entrega < melhor.entrega) melhor = { id, entrega };
+  }
+  riscar(melhor.id);
+}
+
+/* ---------- Fim ---------- */
+function terminar() {
+  jogo.fim = true;
+  const [a, b] = jogo.pontos;
+  const vencedor = a === b ? -1 : a > b ? 0 : 1;
+  if (vencedor >= 0) vitorias[vencedor]++;
+  quemComeca = 1 - quemComeca;
+  salvar();
+  desenhar();
+  setTimeout(() => {
+    const el = document.createElement("div");
+    el.className = "fim";
+    const nome = vencedor >= 0 ? escapar($("nome" + vencedor).value || (vencedor ? "Rosa" : "Amarelo")) : "";
+    el.innerHTML = `<div class="cartao" role="dialog" aria-label="Fim de partida">
+      <h2 style="color:${vencedor === 0 ? "var(--amarelo)" : vencedor === 1 ? "var(--rosa)" : "var(--giz)"}">${vencedor >= 0 ? `${nome} venceu!` : "Empate!"}</h2>
+      <p>${a} × ${b} quadrados · vitórias ${vitorias[0]} × ${vitorias[1]}</p>
+      <div class="lista">
+        <button class="btn forte" id="revanche">Revanche</button>
+        <button class="btn" id="verQuadro">Ver o quadro</button>
+      </div>
+    </div>`;
+    document.body.appendChild(el);
+    $("revanche").onclick = novaPartida;
+    $("verQuadro").onclick = () => el.remove();
+    $("revanche").focus();
+  }, 700);
+}
+
+/* ---------- Desenho ---------- */
+const svg = $("tab");
+function montarQuadro() {
+  const L = tamanho, m = 45;
+  svg.setAttribute("viewBox", `${-m} ${-m} ${L * U + 2 * m} ${L * U + 2 * m}`);
+  let s = "";
+  for (let r = 0; r <= L; r++) for (let c = 0; c <= L; c++) s += `<circle class="ponto" cx="${c * U}" cy="${r * U}" r="9"/>`;
+  $("camadaPontos").innerHTML = s;
+}
+function coordsLinha(id) {
+  const [t, r, c] = id.split(",").map((v, i) => i ? +v : v);
+  return t === "h" ? [c * U, r * U, (c + 1) * U, r * U] : [c * U, r * U, c * U, (r + 1) * U];
+}
+function desenhar() {
+  // Quadrados conquistados
+  let s = "";
+  for (const [k, dono] of jogo.caixas) {
+    const [r, c] = k.split(",").map(Number);
+    const nome = $("nome" + dono).value.trim() || (dono ? "R" : "A");
+    s += `<g class="caixa-dono p${dono}"${jogo.novas.includes(k) ? "" : ' style="animation:none"'}>
+      <rect x="${c * U + 8}" y="${r * U + 8}" width="${U - 16}" height="${U - 16}" rx="6" class="caixa-dono p${dono}" style="animation:none"/>
+      <text class="letra p${dono}" x="${c * U + U / 2}" y="${r * U + U / 2 + 2}">${escapar(nome[0].toUpperCase())}</text></g>`;
+  }
+  $("camadaCaixas").innerHTML = s;
+
+  // Linhas riscadas
+  s = "";
+  for (const [id, dono] of jogo.linhas) {
+    const [x1, y1, x2, y2] = coordsLinha(id);
+    const ultimo = id === jogo.ultima;
+    s += `<line class="traco p${dono}${ultimo ? " ultimo novo" : ""}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"${ultimo ? ' pathLength="100" stroke-dasharray="100"' : ""}/>`;
+  }
+  $("camadaTracos").innerHTML = s;
+
+  // Prévia (mouse)
+  if (jogo.previa && !jogo.linhas.has(jogo.previa) && vezHumana()) {
+    const [x1, y1, x2, y2] = coordsLinha(jogo.previa);
+    $("camadaFantasma").innerHTML = `<line class="fantasma" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+  } else $("camadaFantasma").innerHTML = "";
+
+  // Painel
+  [0, 1].forEach(p => {
+    $("card" + p).classList.toggle("vez", !jogo.fim && jogo.vez === p);
+    $("q" + p).textContent = jogo.pontos[p];
+    $("extra" + p).textContent = `${vitorias[p]} ${vitorias[p] === 1 ? "vitória" : "vitórias"} · ${jogo.desfazeres[p]} ↶`;
+  });
+  const autor = quemDesfaz();
+  const restam = autor >= 0 ? jogo.desfazeres[autor] : 0;
+  $("btnDesfazer").disabled = autor < 0 || restam <= 0;
+  $("btnDesfazer").textContent = autor >= 0 ? `Desfazer (${restam})` : "Desfazer";
+  mostrarStatus();
+}
+const vezHumana = () => !jogo.fim && !(modoCpu && jogo.vez === 1);
+const escapar = t => t.replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
+
+function mostrarStatus() {
+  const nome = p => `<span class="n${p}">${escapar($("nome" + p).value || (p ? "Rosa" : "Amarelo"))}</span>`;
+  const livres = 2 * tamanho * (tamanho + 1) - jogo.linhas.size;
+  let t;
+  if (jogo.fim) t = "Fim de partida!";
+  else if (jogo.msg === "um") t = `${nome(jogo.vez)} fechou um quadrado! Joga de novo.`;
+  else if (jogo.msg === "dois") t = `${nome(jogo.vez)} fechou dois! Joga de novo.`;
+  else if (modoCpu && jogo.vez === 1) t = `${nome(1)} está pensando…`;
+  else t = `Vez de ${nome(jogo.vez)} · ${livres} linhas livres`;
+  $("status").innerHTML = `<span>${t}</span>`;
+}
+
+/* ---------- Toque e mouse ----------
+   Acha a linha mais perto do dedo. Se estiver longe demais de qualquer linha, ignora. */
+function pontoSvg(e) {
+  const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY;
+  const q = p.matrixTransform(svg.getScreenCTM().inverse());
+  return [q.x / U, q.y / U];
+}
+function linhaPerto(e) {
+  const [x, y] = pontoSvg(e), L = tamanho;
+  let melhor = null;
+  // horizontal
+  const rh = Math.round(y), ch = Math.floor(x);
+  if (rh >= 0 && rh <= L && ch >= 0 && ch < L) melhor = { id: `h,${rh},${ch}`, d: Math.abs(y - rh) };
+  // vertical
+  const cv = Math.round(x), rv = Math.floor(y);
+  if (cv >= 0 && cv <= L && rv >= 0 && rv < L) {
+    const d = Math.abs(x - cv);
+    if (!melhor || d < melhor.d) melhor = { id: `v,${rv},${cv}`, d };
+  }
+  return melhor && melhor.d < 0.36 ? melhor.id : null;
+}
+svg.addEventListener("pointermove", e => {
+  if (e.pointerType !== "mouse" || !vezHumana()) return;
+  const id = linhaPerto(e);
+  if (id !== jogo.previa) { jogo.previa = id; desenhar(); }
+});
+svg.addEventListener("pointerleave", () => { if (jogo.previa) { jogo.previa = null; desenhar(); } });
+svg.addEventListener("click", e => {
+  if (!vezHumana()) return;
+  const id = linhaPerto(e);
+  if (id && !jogo.linhas.has(id)) riscar(id);
+});
+
+/* ---------- Botões ---------- */
+$("btnNovo").onclick = novaPartida;
+$("btnDesfazer").onclick = desfazer;
+function definirModo(cpu) {
+  modoCpu = cpu;
+  $("modo2").setAttribute("aria-pressed", !cpu);
+  $("modoCpu").setAttribute("aria-pressed", cpu);
+  if (cpu) $("nome1").value = "Computador";
+  else if ($("nome1").value === "Computador") $("nome1").value = "Rosa";
+  $("nome1").disabled = cpu;
+  vitorias = [0, 0]; quemComeca = 0;
+  salvar();
+  novaPartida();
+}
+$("modo2").onclick = () => definirModo(false);
+$("modoCpu").onclick = () => definirModo(true);
+document.querySelectorAll("[data-tam]").forEach(b => b.onclick = () => {
+  tamanho = +b.dataset.tam;
+  document.querySelectorAll("[data-tam]").forEach(x => x.setAttribute("aria-pressed", x === b));
+  novaPartida();
+});
+["nome0", "nome1"].forEach(id => $(id).addEventListener("input", () => { salvar(); desenhar(); }));
+
+novaPartida();
+</script>
+
+</body></html>
